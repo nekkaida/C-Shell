@@ -1,0 +1,132 @@
+name: Build and Test C Shell
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        cc: [gcc, clang]
+        exclude:
+          # Exclude some combinations if needed
+          - os: macos-latest
+            cc: gcc
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up environment
+      run: |
+        if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+          sudo apt-get update
+          sudo apt-get install -y build-essential
+        fi
+
+    - name: Initialize CC
+      run: |
+        echo "CC=${{ matrix.cc }}" >> $GITHUB_ENV
+
+    - name: Build
+      run: make
+
+    - name: Build Debug
+      run: |
+        make clean
+        make debug
+
+    - name: Run basic tests
+      run: |
+        # Test executable exists
+        test -f ./shell
+        
+        # Test that it runs and exits properly
+        echo "exit" | ./shell
+        
+        # Test built-in echo command
+        OUTPUT=$(echo "echo Hello World" | ./shell | grep "Hello World")
+        if [ -z "$OUTPUT" ]; then
+          echo "Echo test failed"
+          exit 1
+        fi
+        
+        # Test pwd command
+        OUTPUT=$(echo "pwd" | ./shell | grep "$(pwd)")
+        if [ -z "$OUTPUT" ]; then
+          echo "PWD test failed"
+          exit 1
+        fi
+        
+        echo "Basic functionality tests passed"
+
+  codeql:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v2
+      with:
+        languages: 'cpp'
+
+    - name: Build
+      run: make
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v2
+
+  memory-analysis:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install Valgrind
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y valgrind
+    
+    - name: Build with debug symbols
+      run: make debug
+    
+    - name: Run Valgrind tests
+      run: |
+        # Create test script that exercises core functionality
+        echo '#!/bin/bash' > test_script.sh
+        echo 'echo "pwd"' >> test_script.sh
+        echo 'echo "echo Hello World"' >> test_script.sh
+        echo 'echo "cd .."' >> test_script.sh
+        echo 'echo "pwd"' >> test_script.sh
+        echo 'echo "exit"' >> test_script.sh
+        chmod +x test_script.sh
+        
+        # Run valgrind memory check
+        valgrind --leak-check=full --error-exitcode=1 --track-origins=yes ./shell < test_script.sh
+        
+        echo "Memory analysis passed"
+
+  static-analysis:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install cppcheck
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cppcheck
+    
+    - name: Run cppcheck
+      run: |
+        cppcheck --enable=all --suppress=missingIncludeSystem --error-exitcode=1 *.c
