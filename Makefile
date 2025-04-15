@@ -42,38 +42,38 @@ all: release
 
 # Debug build
 debug:
-    $(MAKE) BUILD_TYPE=debug dirs $(TARGET_EXEC)
+	$(MAKE) BUILD_TYPE=debug dirs $(TARGET_EXEC)
 
 # Release build
 release:
-    $(MAKE) BUILD_TYPE=release dirs $(TARGET_EXEC)
+	$(MAKE) BUILD_TYPE=release dirs $(TARGET_EXEC)
 
 # Create necessary directories
 dirs:
-    mkdir -p $(BUILD_DIR)
-    mkdir -p $(BIN_DIR)
+	mkdir -p $(BUILD_DIR)
+	mkdir -p $(BIN_DIR)
 
 # Link the executable
 $(TARGET_EXEC): $(OBJS)
-    $(CC) $(OBJS) -o $@ $(LDFLAGS)
+	$(CC) $(OBJS) -o $@ $(LDFLAGS)
 
 # Compile source files
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
-    $(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 # Clean build files
 clean:
-    rm -rf build bin
+	rm -rf build bin
 
 # Run the shell (convenience target)
 .PHONY: run
 run: release
-    $(TARGET_EXEC)
+	$(TARGET_EXEC)
 
 # Install the shell (optional)
 .PHONY: install
 install: release
-    cp $(TARGET_EXEC) /usr/local/bin/$(TARGET)
+	cp $(TARGET_EXEC) /usr/local/bin/$(TARGET)
 
 # Generate dependencies
 DEPS := $(OBJS:.o=.d)

@@ -15,27 +15,8 @@ jobs:
       - name: Set up environment
         run: sudo apt-get update && sudo apt-get install -y build-essential
 
-      - name: Create minimal Makefile if needed
-        run: |
-          if [ ! -f "Makefile" ]; then
-            echo 'CC ?= gcc' > Makefile
-            echo 'CFLAGS = -Wall -Wextra -std=c99' >> Makefile
-            echo 'DEBUG_FLAGS = -g -DDEBUG' >> Makefile
-            echo '' >> Makefile
-            echo 'all: shell' >> Makefile
-            echo '' >> Makefile
-            echo 'shell: main.c' >> Makefile
-            echo -e '\t$(CC) $(CFLAGS) -o shell main.c' >> Makefile
-            echo '' >> Makefile
-            echo 'debug: CFLAGS += $(DEBUG_FLAGS)' >> Makefile
-            echo 'debug: shell' >> Makefile
-            echo '' >> Makefile
-            echo 'clean:' >> Makefile
-            echo -e '\trm -f shell' >> Makefile
-          fi
-
-      - name: Build shell
-        run: make && if [ -f "./shell" ]; then echo "✅ Build successful"; else echo "❌ Build failed" && exit 1; fi
+      - name: Build shell (release)
+        run: make release
 
       - name: Create test environment
         run: mkdir -p test_dir && echo "test content" > test_dir/test_file.txt && chmod +x test_dir/test_file.txt
@@ -46,7 +27,7 @@ jobs:
       
       - name: Test basic functionality
         run: |
-          OUTPUT=$(cat test_commands.txt | ./shell 2>&1 || true)
+          OUTPUT=$(cat test_commands.txt | ./bin/release/shell 2>&1 || true)
           echo "$OUTPUT"
           if echo "$OUTPUT" | grep -q "Testing echo command"; then echo "✅ Echo command test passed"; else echo "❌ Echo command test failed" && exit 1; fi
           if echo "$OUTPUT" | grep -q "$(pwd)" || echo "$OUTPUT" | grep -q "/"; then echo "✅ PWD command test passed"; else echo "❌ PWD command test failed"; fi
@@ -71,28 +52,9 @@ jobs:
 
       - name: Set compiler
         run: echo "CC=${{ matrix.cc }}" >> $GITHUB_ENV
-        
-      - name: Create minimal Makefile if needed
-        run: |
-          if [ ! -f "Makefile" ]; then
-            echo 'CC ?= gcc' > Makefile
-            echo 'CFLAGS = -Wall -Wextra -std=c99' >> Makefile
-            echo 'DEBUG_FLAGS = -g -DDEBUG' >> Makefile
-            echo '' >> Makefile
-            echo 'all: shell' >> Makefile
-            echo '' >> Makefile
-            echo 'shell: main.c' >> Makefile
-            echo -e '\t$(CC) $(CFLAGS) -o shell main.c' >> Makefile
-            echo '' >> Makefile
-            echo 'debug: CFLAGS += $(DEBUG_FLAGS)' >> Makefile
-            echo 'debug: shell' >> Makefile
-            echo '' >> Makefile
-            echo 'clean:' >> Makefile
-            echo -e '\trm -f shell' >> Makefile
-          fi
-        
-      - name: Build shell
-        run: make && if [ -f "./shell" ]; then echo "✅ Build successful with ${{ matrix.cc }} on ${{ matrix.os }}"; else echo "❌ Build failed with ${{ matrix.cc }} on ${{ matrix.os }}" && exit 1; fi
+
+      - name: Build shell (release)
+        run: make release && if [ -f "./bin/release/shell" ]; then echo "✅ Build successful with ${{ matrix.cc }} on ${{ matrix.os }}"; else echo "❌ Build failed with ${{ matrix.cc }} on ${{ matrix.os }}" && exit 1; fi
 
   codeql:
     runs-on: ubuntu-latest
@@ -110,27 +72,8 @@ jobs:
         with:
           languages: 'cpp'
 
-      - name: Create minimal Makefile if needed
-        run: |
-          if [ ! -f "Makefile" ]; then
-            echo 'CC ?= gcc' > Makefile
-            echo 'CFLAGS = -Wall -Wextra -std=c99' >> Makefile
-            echo 'DEBUG_FLAGS = -g -DDEBUG' >> Makefile
-            echo '' >> Makefile
-            echo 'all: shell' >> Makefile
-            echo '' >> Makefile
-            echo 'shell: main.c' >> Makefile
-            echo -e '\t$(CC) $(CFLAGS) -o shell main.c' >> Makefile
-            echo '' >> Makefile
-            echo 'debug: CFLAGS += $(DEBUG_FLAGS)' >> Makefile
-            echo 'debug: shell' >> Makefile
-            echo '' >> Makefile
-            echo 'clean:' >> Makefile
-            echo -e '\trm -f shell' >> Makefile
-          fi
-
       - name: Build
-        run: make
+        run: make release
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
