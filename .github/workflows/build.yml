@@ -18,25 +18,20 @@ jobs:
       - name: Create minimal Makefile if needed
         run: |
           if [ ! -f "Makefile" ]; then
-            # First create the Makefile without tab indentation
-            cat > Makefile << 'EOF'
-            CC ?= gcc
-            CFLAGS = -Wall -Wextra -std=c99
-            DEBUG_FLAGS = -g -DDEBUG
-
-            all: shell
-
-            shell: main.c
-            <TAB>$(CC) $(CFLAGS) -o shell main.c
-
-            debug: CFLAGS += $(DEBUG_FLAGS)
-            debug: shell
-
-            clean:
-            <TAB>rm -f shell
-            EOF
-            # Replace <TAB> with actual tab character
-            sed -i 's/<TAB>/\t/g' Makefile
+            echo 'CC ?= gcc' > Makefile
+            echo 'CFLAGS = -Wall -Wextra -std=c99' >> Makefile
+            echo 'DEBUG_FLAGS = -g -DDEBUG' >> Makefile
+            echo '' >> Makefile
+            echo 'all: shell' >> Makefile
+            echo '' >> Makefile
+            echo 'shell: main.c' >> Makefile
+            echo -e '\t$(CC) $(CFLAGS) -o shell main.c' >> Makefile
+            echo '' >> Makefile
+            echo 'debug: CFLAGS += $(DEBUG_FLAGS)' >> Makefile
+            echo 'debug: shell' >> Makefile
+            echo '' >> Makefile
+            echo 'clean:' >> Makefile
+            echo -e '\trm -f shell' >> Makefile
           fi
 
       - name: Build shell
@@ -80,29 +75,20 @@ jobs:
       - name: Create minimal Makefile if needed
         run: |
           if [ ! -f "Makefile" ]; then
-            # First create the Makefile without tab indentation
-            cat > Makefile << 'EOF'
-            CC ?= gcc
-            CFLAGS = -Wall -Wextra -std=c99
-            DEBUG_FLAGS = -g -DDEBUG
-
-            all: shell
-
-            shell: main.c
-            <TAB>$(CC) $(CFLAGS) -o shell main.c
-
-            debug: CFLAGS += $(DEBUG_FLAGS)
-            debug: shell
-
-            clean:
-            <TAB>rm -f shell
-            EOF
-            # Replace <TAB> with actual tab character
-            if [ "${{ matrix.os }}" = "macos-latest" ]; then
-              sed -i '' 's/<TAB>/\t/g' Makefile
-            else
-              sed -i 's/<TAB>/\t/g' Makefile
-            fi
+            echo 'CC ?= gcc' > Makefile
+            echo 'CFLAGS = -Wall -Wextra -std=c99' >> Makefile
+            echo 'DEBUG_FLAGS = -g -DDEBUG' >> Makefile
+            echo '' >> Makefile
+            echo 'all: shell' >> Makefile
+            echo '' >> Makefile
+            echo 'shell: main.c' >> Makefile
+            echo -e '\t$(CC) $(CFLAGS) -o shell main.c' >> Makefile
+            echo '' >> Makefile
+            echo 'debug: CFLAGS += $(DEBUG_FLAGS)' >> Makefile
+            echo 'debug: shell' >> Makefile
+            echo '' >> Makefile
+            echo 'clean:' >> Makefile
+            echo -e '\trm -f shell' >> Makefile
           fi
         
       - name: Build shell
@@ -127,25 +113,20 @@ jobs:
       - name: Create minimal Makefile if needed
         run: |
           if [ ! -f "Makefile" ]; then
-            # First create the Makefile without tab indentation
-            cat > Makefile << 'EOF'
-            CC ?= gcc
-            CFLAGS = -Wall -Wextra -std=c99
-            DEBUG_FLAGS = -g -DDEBUG
-
-            all: shell
-
-            shell: main.c
-            <TAB>$(CC) $(CFLAGS) -o shell main.c
-
-            debug: CFLAGS += $(DEBUG_FLAGS)
-            debug: shell
-
-            clean:
-            <TAB>rm -f shell
-            EOF
-            # Replace <TAB> with actual tab character
-            sed -i 's/<TAB>/\t/g' Makefile
+            echo 'CC ?= gcc' > Makefile
+            echo 'CFLAGS = -Wall -Wextra -std=c99' >> Makefile
+            echo 'DEBUG_FLAGS = -g -DDEBUG' >> Makefile
+            echo '' >> Makefile
+            echo 'all: shell' >> Makefile
+            echo '' >> Makefile
+            echo 'shell: main.c' >> Makefile
+            echo -e '\t$(CC) $(CFLAGS) -o shell main.c' >> Makefile
+            echo '' >> Makefile
+            echo 'debug: CFLAGS += $(DEBUG_FLAGS)' >> Makefile
+            echo 'debug: shell' >> Makefile
+            echo '' >> Makefile
+            echo 'clean:' >> Makefile
+            echo -e '\trm -f shell' >> Makefile
           fi
 
       - name: Build
