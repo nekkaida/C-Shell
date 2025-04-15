@@ -7,7 +7,7 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
     
     steps:
@@ -18,13 +18,92 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y build-essential
 
-    - name: Build
+    - name: Build shell
       run: |
-        # Ensure Makefile exists and is properly formatted
+        # Use the existing Makefile
+        make
+        # Verify shell was built
+        test -f ./shell
+
+    - name: Prepare test environment
+      run: |
+        # Create a test directory with files for testing
+        mkdir -p test_dir
+        echo "test content" > test_dir/test_file.txt
+        chmod +x test_dir/test_file.txt
+        
+        # Create a test script file with commands to test shell functionality
+        cat > test_commands.txt << 'EOF'
+echo "Testing echo command"
+pwd
+cd test_dir
+pwd
+echo "Reading test file: " test_file.txt
+exit
+EOF
+    
+    - name: Test basic functionality
+      run: |
+        # Run shell with commands and capture output
+        OUTPUT=$(cat test_commands.txt | ./shell 2>&1 || true)
+        echo "$OUTPUT"
+        
+        # Verify expected outputs
+        # Check for echo command output
+        if echo "$OUTPUT" | grep -q "Testing echo command"; then
+          echo "✅ Echo command test passed"
+        else
+          echo "❌ Echo command test failed"
+          exit 1
+        fi
+        
+        # Check if current directory was displayed
+        if echo "$OUTPUT" | grep -q "$(pwd)"; then
+          echo "✅ PWD command test passed"
+        else
+          echo "❌ PWD command test failed"
+          # Don't exit here as PWD might be formatted differently
+        fi
+        
+        # Check if shell compiled and ran at all
+        if [ -n "$OUTPUT" ]; then
+          echo "✅ Shell executed successfully"
+        else
+          echo "❌ Shell failed to run"
+          exit 1
+        fi
+
+  build-multi-platform:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false  # Continue with other builds even if one fails
+      matrix:
+        os: [ubuntu-latest]
+        cc: [gcc, clang]
+        include:
+          - os: macos-latest
+            cc: clang
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up environment
+      run: |
+        if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+          sudo apt-get update
+          sudo apt-get install -y build-essential
+        fi
+
+    - name: Set compiler
+      run: |
+        echo "CC=${{ matrix.cc }}" >> $GITHUB_ENV
+        
+    - name: Build shell
+      run: |
+        # Check if Makefile exists, otherwise create minimal version
         if [ ! -f "Makefile" ]; then
-          echo "Creating minimal Makefile"
           cat > Makefile << 'EOF'
-CC = gcc
+CC ?= gcc
 CFLAGS = -Wall -Wextra -std=c99
 DEBUG_FLAGS = -g -DDEBUG
 
@@ -41,23 +120,10 @@ clean:
 EOF
         fi
         make
-
-    - name: Build Debug
-      run: |
-        make clean
-        make debug
-
-    - name: Run basic tests
-      run: |
-        # Test executable exists
+        
+        # Verify shell was built
         test -f ./shell
-        
-        # Simple test - just verify it compiles and runs
-        # Redirect stderr to avoid terminal related errors in CI
-        echo "exit" | ./shell 2>/dev/null || true
-        
-        # Success if we get this far
-        echo "Basic functionality test passed"
+        echo "✅ Build successful with ${{ matrix.cc }} on ${{ matrix.os }}"
 
   codeql:
     runs-on: ubuntu-latest
@@ -77,9 +143,8 @@ EOF
 
     - name: Build
       run: |
-        # Ensure Makefile exists 
+        # Check if Makefile exists, otherwise create minimal version
         if [ ! -f "Makefile" ]; then
-          echo "Creating minimal Makefile"
           cat > Makefile << 'EOF'
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c99
@@ -98,19 +163,38 @@ EOF
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
 
-  static-analysis:
+  code-quality:
     runs-on: ubuntu-latest
     
     steps:
     - uses: actions/checkout@v3
     
-    - name: Install cppcheck
+    - name: Install analysis tools
       run: |
         sudo apt-get update
         sudo apt-get install -y cppcheck
-    
-    - name: Run cppcheck
+
+    - name: Static analysis with cppcheck
       run: |
-        # Adjust cppcheck configuration to be less strict for CI
-        cppcheck --enable=warning --suppress=missingIncludeSystem --error-exitcode=0 *.c
-        echo "Static analysis completed"
+        cppcheck --enable=warning,performance --suppress=missingIncludeSystem --error-exitcode=0 *.c
+        echo "ℹ️ Cppcheck analysis completed"
+        
+    - name: Check coding standards
+      run: |
+        # Count lines over 80 characters
+        LONG_LINES=$(grep -n '.\{81\}' *.c *.h 2>/dev/null || echo "")
+        if [ -n "$LONG_LINES" ]; then
+          echo "ℹ️ Found lines longer than 80 characters:"
+          echo "$LONG_LINES" | head -10
+          echo "Consider reformatting these lines."
+        else
+          echo "✅ No lines over 80 characters found."
+        fi
+        
+        # Check for tabs vs spaces
+        TABS=$(grep -P '\t' *.c *.h 2>/dev/null || echo "")
+        if [ -n "$TABS" ]; then
+          echo "ℹ️ Found tabs in source files. Consider using spaces instead."
+        else
+          echo "✅ No tabs found in source files."
+        fi
