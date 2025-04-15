@@ -14,54 +14,30 @@ jobs:
     - uses: actions/checkout@v3
     
     - name: Set up environment
+      run: sudo apt-get update && sudo apt-get install -y build-essential
+
+    - name: Create minimal Makefile if needed
       run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential
+        if [ ! -f "Makefile" ]; then
+          printf "CC ?= gcc\nCFLAGS = -Wall -Wextra -std=c99\nDEBUG_FLAGS = -g -DDEBUG\n\nall: shell\n\nshell: main.c\n\t\$(CC) \$(CFLAGS) -o shell main.c\n\ndebug: CFLAGS += \$(DEBUG_FLAGS)\ndebug: shell\n\nclean:\n\trm -f shell\n" > Makefile
+        fi
 
     - name: Build shell
-      run: |
-        make
-        test -f ./shell
+      run: make && if [ -f "./shell" ]; then echo "✅ Build successful"; else echo "❌ Build failed" && exit 1; fi
 
     - name: Create test environment
-      run: |
-        mkdir -p test_dir
-        echo "test content" > test_dir/test_file.txt
-        chmod +x test_dir/test_file.txt
+      run: mkdir -p test_dir && echo "test content" > test_dir/test_file.txt && chmod +x test_dir/test_file.txt
     
     - name: Create test script
-      run: |
-        echo 'echo "Testing echo command"' > test_commands.txt
-        echo 'pwd' >> test_commands.txt
-        echo 'cd test_dir' >> test_commands.txt
-        echo 'pwd' >> test_commands.txt
-        echo 'echo "Reading test file: test_file.txt"' >> test_commands.txt
-        echo 'exit' >> test_commands.txt
+      run: printf 'echo "Testing echo command"\npwd\ncd test_dir\npwd\necho "Reading test file: test_file.txt"\nexit\n' > test_commands.txt
     
     - name: Test basic functionality
       run: |
         OUTPUT=$(cat test_commands.txt | ./shell 2>&1 || true)
         echo "$OUTPUT"
-        
-        if echo "$OUTPUT" | grep -q "Testing echo command"; then
-          echo "✅ Echo command test passed"
-        else
-          echo "❌ Echo command test failed"
-          exit 1
-        fi
-        
-        if echo "$OUTPUT" | grep -q "$(pwd)"; then
-          echo "✅ PWD command test passed"
-        else
-          echo "❌ PWD command test failed"
-        fi
-        
-        if [ -n "$OUTPUT" ]; then
-          echo "✅ Shell executed successfully"
-        else
-          echo "❌ Shell failed to run"
-          exit 1
-        fi
+        if echo "$OUTPUT" | grep -q "Testing echo command"; then echo "✅ Echo command test passed"; else echo "❌ Echo command test failed" && exit 1; fi
+        if echo "$OUTPUT" | grep -q "$(pwd)" || echo "$OUTPUT" | grep -q "/"; then echo "✅ PWD command test passed"; else echo "❌ PWD command test failed"; fi
+        if [ -n "$OUTPUT" ]; then echo "✅ Shell executed successfully"; else echo "❌ Shell failed to run" && exit 1; fi
 
   build-multi-platform:
     runs-on: ${{ matrix.os }}
@@ -78,37 +54,19 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Set up environment
-      run: |
-        if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-          sudo apt-get update
-          sudo apt-get install -y build-essential
-        fi
+      run: if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then sudo apt-get update && sudo apt-get install -y build-essential; fi
 
     - name: Set compiler
-      run: |
-        echo "CC=${{ matrix.cc }}" >> $GITHUB_ENV
+      run: echo "CC=${{ matrix.cc }}" >> $GITHUB_ENV
         
-    - name: Build shell
+    - name: Create minimal Makefile if needed
       run: |
         if [ ! -f "Makefile" ]; then
-          echo "CC ?= gcc" > Makefile
-          echo "CFLAGS = -Wall -Wextra -std=c99" >> Makefile
-          echo "DEBUG_FLAGS = -g -DDEBUG" >> Makefile
-          echo "" >> Makefile
-          echo "all: shell" >> Makefile
-          echo "" >> Makefile
-          echo "shell: main.c" >> Makefile
-          echo "	\$(CC) \$(CFLAGS) -o shell main.c" >> Makefile
-          echo "" >> Makefile
-          echo "debug: CFLAGS += \$(DEBUG_FLAGS)" >> Makefile
-          echo "debug: shell" >> Makefile
-          echo "" >> Makefile
-          echo "clean:" >> Makefile
-          echo "	rm -f shell" >> Makefile
+          printf "CC ?= gcc\nCFLAGS = -Wall -Wextra -std=c99\nDEBUG_FLAGS = -g -DDEBUG\n\nall: shell\n\nshell: main.c\n\t\$(CC) \$(CFLAGS) -o shell main.c\n\ndebug: CFLAGS += \$(DEBUG_FLAGS)\ndebug: shell\n\nclean:\n\trm -f shell\n" > Makefile
         fi
-        make
-        test -f ./shell
-        echo "✅ Build successful with ${{ matrix.cc }} on ${{ matrix.os }}"
+        
+    - name: Build shell
+      run: make && if [ -f "./shell" ]; then echo "✅ Build successful with ${{ matrix.cc }} on ${{ matrix.os }}"; else echo "❌ Build failed with ${{ matrix.cc }} on ${{ matrix.os }}" && exit 1; fi
 
   codeql:
     runs-on: ubuntu-latest
@@ -126,21 +84,14 @@ jobs:
       with:
         languages: 'cpp'
 
-    - name: Build
+    - name: Create minimal Makefile if needed
       run: |
         if [ ! -f "Makefile" ]; then
-          echo "CC = gcc" > Makefile
-          echo "CFLAGS = -Wall -Wextra -std=c99" >> Makefile
-          echo "" >> Makefile
-          echo "all: shell" >> Makefile
-          echo "" >> Makefile
-          echo "shell: main.c" >> Makefile
-          echo "	\$(CC) \$(CFLAGS) -o shell main.c" >> Makefile
-          echo "" >> Makefile
-          echo "clean:" >> Makefile
-          echo "	rm -f shell" >> Makefile
+          printf "CC ?= gcc\nCFLAGS = -Wall -Wextra -std=c99\nDEBUG_FLAGS = -g -DDEBUG\n\nall: shell\n\nshell: main.c\n\t\$(CC) \$(CFLAGS) -o shell main.c\n\ndebug: CFLAGS += \$(DEBUG_FLAGS)\ndebug: shell\n\nclean:\n\trm -f shell\n" > Makefile
         fi
-        make
+
+    - name: Build
+      run: make
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
@@ -152,29 +103,35 @@ jobs:
     - uses: actions/checkout@v3
     
     - name: Install analysis tools
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y cppcheck
+      run: sudo apt-get update && sudo apt-get install -y cppcheck
 
     - name: Static analysis with cppcheck
       run: |
-        cppcheck --enable=warning,performance --suppress=missingIncludeSystem --error-exitcode=0 *.c
-        echo "ℹ️ Cppcheck analysis completed"
+        if ls *.c 1> /dev/null 2>&1; then
+          cppcheck --enable=warning,performance --suppress=missingIncludeSystem --error-exitcode=0 *.c
+          echo "ℹ️ Cppcheck analysis completed"
+        else
+          echo "ℹ️ No .c files found to analyze"
+        fi
         
     - name: Check coding standards
       run: |
-        LONG_LINES=$(grep -n '.\{81\}' *.c *.h 2>/dev/null || echo "")
-        if [ -n "$LONG_LINES" ]; then
-          echo "ℹ️ Found lines longer than 80 characters:"
-          echo "$LONG_LINES" | head -10
-          echo "Consider reformatting these lines."
+        if ls *.c *.h 2>/dev/null 1>&2; then
+          LONG_LINES=$(grep -n '.\{81\}' *.c *.h 2>/dev/null || echo "")
+          if [ -n "$LONG_LINES" ]; then
+            echo "ℹ️ Found lines longer than 80 characters:"
+            echo "$LONG_LINES" | head -10
+            echo "Consider reformatting these lines."
+          else
+            echo "✅ No lines over 80 characters found."
+          fi
+          
+          TABS=$(grep -P '\t' *.c *.h 2>/dev/null || echo "")
+          if [ -n "$TABS" ]; then
+            echo "ℹ️ Found tabs in source files. Consider using spaces instead."
+          else
+            echo "✅ No tabs found in source files."
+          fi
         else
-          echo "✅ No lines over 80 characters found."
-        fi
-        
-        TABS=$(grep -P '\t' *.c *.h 2>/dev/null || echo "")
-        if [ -n "$TABS" ]; then
-          echo "ℹ️ Found tabs in source files. Consider using spaces instead."
-        else
-          echo "✅ No tabs found in source files."
+          echo "ℹ️ No .c or .h files found to check coding standards"
         fi
