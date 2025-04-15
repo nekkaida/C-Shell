@@ -38,7 +38,7 @@ echo "Testing echo command"
 pwd
 cd test_dir
 pwd
-echo "Reading test file: " test_file.txt
+echo "Reading test file: test_file.txt"
 exit
 EOF
     
