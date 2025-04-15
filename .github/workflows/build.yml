@@ -20,36 +20,29 @@ jobs:
 
     - name: Build shell
       run: |
-        # Use the existing Makefile
         make
-        # Verify shell was built
         test -f ./shell
 
-    - name: Prepare test environment
+    - name: Create test environment
       run: |
-        # Create a test directory with files for testing
         mkdir -p test_dir
         echo "test content" > test_dir/test_file.txt
         chmod +x test_dir/test_file.txt
-        
-        # Create a test script file with commands to test shell functionality
-        cat > test_commands.txt << 'EOF'
-echo "Testing echo command"
-pwd
-cd test_dir
-pwd
-echo "Reading test file: test_file.txt"
-exit
-EOF
+    
+    - name: Create test script
+      run: |
+        echo 'echo "Testing echo command"' > test_commands.txt
+        echo 'pwd' >> test_commands.txt
+        echo 'cd test_dir' >> test_commands.txt
+        echo 'pwd' >> test_commands.txt
+        echo 'echo "Reading test file: test_file.txt"' >> test_commands.txt
+        echo 'exit' >> test_commands.txt
     
     - name: Test basic functionality
       run: |
-        # Run shell with commands and capture output
         OUTPUT=$(cat test_commands.txt | ./shell 2>&1 || true)
         echo "$OUTPUT"
         
-        # Verify expected outputs
-        # Check for echo command output
         if echo "$OUTPUT" | grep -q "Testing echo command"; then
           echo "✅ Echo command test passed"
         else
@@ -57,15 +50,12 @@ EOF
           exit 1
         fi
         
-        # Check if current directory was displayed
         if echo "$OUTPUT" | grep -q "$(pwd)"; then
           echo "✅ PWD command test passed"
         else
           echo "❌ PWD command test failed"
-          # Don't exit here as PWD might be formatted differently
         fi
         
-        # Check if shell compiled and ran at all
         if [ -n "$OUTPUT" ]; then
           echo "✅ Shell executed successfully"
         else
@@ -76,7 +66,7 @@ EOF
   build-multi-platform:
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false  # Continue with other builds even if one fails
+      fail-fast: false
       matrix:
         os: [ubuntu-latest]
         cc: [gcc, clang]
@@ -100,28 +90,23 @@ EOF
         
     - name: Build shell
       run: |
-        # Check if Makefile exists, otherwise create minimal version
         if [ ! -f "Makefile" ]; then
-          cat > Makefile << 'EOF'
-CC ?= gcc
-CFLAGS = -Wall -Wextra -std=c99
-DEBUG_FLAGS = -g -DDEBUG
-
-all: shell
-
-shell: main.c
-	$(CC) $(CFLAGS) -o shell main.c
-
-debug: CFLAGS += $(DEBUG_FLAGS)
-debug: shell
-
-clean:
-	rm -f shell
-EOF
+          echo "CC ?= gcc" > Makefile
+          echo "CFLAGS = -Wall -Wextra -std=c99" >> Makefile
+          echo "DEBUG_FLAGS = -g -DDEBUG" >> Makefile
+          echo "" >> Makefile
+          echo "all: shell" >> Makefile
+          echo "" >> Makefile
+          echo "shell: main.c" >> Makefile
+          echo "	\$(CC) \$(CFLAGS) -o shell main.c" >> Makefile
+          echo "" >> Makefile
+          echo "debug: CFLAGS += \$(DEBUG_FLAGS)" >> Makefile
+          echo "debug: shell" >> Makefile
+          echo "" >> Makefile
+          echo "clean:" >> Makefile
+          echo "	rm -f shell" >> Makefile
         fi
         make
-        
-        # Verify shell was built
         test -f ./shell
         echo "✅ Build successful with ${{ matrix.cc }} on ${{ matrix.os }}"
 
@@ -143,20 +128,17 @@ EOF
 
     - name: Build
       run: |
-        # Check if Makefile exists, otherwise create minimal version
         if [ ! -f "Makefile" ]; then
-          cat > Makefile << 'EOF'
-CC = gcc
-CFLAGS = -Wall -Wextra -std=c99
-
-all: shell
-
-shell: main.c
-	$(CC) $(CFLAGS) -o shell main.c
-
-clean:
-	rm -f shell
-EOF
+          echo "CC = gcc" > Makefile
+          echo "CFLAGS = -Wall -Wextra -std=c99" >> Makefile
+          echo "" >> Makefile
+          echo "all: shell" >> Makefile
+          echo "" >> Makefile
+          echo "shell: main.c" >> Makefile
+          echo "	\$(CC) \$(CFLAGS) -o shell main.c" >> Makefile
+          echo "" >> Makefile
+          echo "clean:" >> Makefile
+          echo "	rm -f shell" >> Makefile
         fi
         make
 
@@ -181,7 +163,6 @@ EOF
         
     - name: Check coding standards
       run: |
-        # Count lines over 80 characters
         LONG_LINES=$(grep -n '.\{81\}' *.c *.h 2>/dev/null || echo "")
         if [ -n "$LONG_LINES" ]; then
           echo "ℹ️ Found lines longer than 80 characters:"
@@ -191,7 +172,6 @@ EOF
           echo "✅ No lines over 80 characters found."
         fi
         
-        # Check for tabs vs spaces
         TABS=$(grep -P '\t' *.c *.h 2>/dev/null || echo "")
         if [ -n "$TABS" ]; then
           echo "ℹ️ Found tabs in source files. Consider using spaces instead."
