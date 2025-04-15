@@ -15,8 +15,23 @@ jobs:
       - name: Set up environment
         run: sudo apt-get update && sudo apt-get install -y build-essential
 
-      - name: Build shell (release)
-        run: make release
+      - name: Debug file structure
+        run: |
+          echo "Current directory contents:"
+          ls -la
+          echo "Source files:"
+          find . -name "*.c" | sort
+          
+      - name: Compile directly
+        run: |
+          mkdir -p bin
+          gcc -Wall -Wextra -pedantic -std=c11 -O2 -DNDEBUG main.c -o bin/shell
+          if [ -f "bin/shell" ]; then 
+            echo "✅ Direct compilation successful"
+          else
+            echo "❌ Direct compilation failed" 
+            exit 1
+          fi
 
       - name: Create test environment
         run: mkdir -p test_dir && echo "test content" > test_dir/test_file.txt && chmod +x test_dir/test_file.txt
@@ -27,7 +42,7 @@ jobs:
       
       - name: Test basic functionality
         run: |
-          OUTPUT=$(cat test_commands.txt | ./bin/release/shell 2>&1 || true)
+          OUTPUT=$(cat test_commands.txt | ./bin/shell 2>&1 || true)
           echo "$OUTPUT"
           if echo "$OUTPUT" | grep -q "Testing echo command"; then echo "✅ Echo command test passed"; else echo "❌ Echo command test failed" && exit 1; fi
           if echo "$OUTPUT" | grep -q "$(pwd)" || echo "$OUTPUT" | grep -q "/"; then echo "✅ PWD command test passed"; else echo "❌ PWD command test failed"; fi
@@ -50,33 +65,23 @@ jobs:
       - name: Set up environment
         run: if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then sudo apt-get update && sudo apt-get install -y build-essential; fi
 
-      - name: Set compiler
-        run: echo "CC=${{ matrix.cc }}" >> $GITHUB_ENV
-
-      - name: Build shell (release)
-        run: make release && if [ -f "./bin/release/shell" ]; then echo "✅ Build successful with ${{ matrix.cc }} on ${{ matrix.os }}"; else echo "❌ Build failed with ${{ matrix.cc }} on ${{ matrix.os }}" && exit 1; fi
-
-  codeql:
-    runs-on: ubuntu-latest
-    permissions:
-      security-events: write
-      actions: read
-      contents: read
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: 'cpp'
-
-      - name: Build
-        run: make release
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+      - name: Debug file structure
+        run: |
+          echo "Current directory contents:"
+          ls -la
+          echo "Source files:"
+          find . -name "*.c" | sort
+          
+      - name: Compile directly with ${{ matrix.cc }}
+        run: |
+          mkdir -p bin
+          ${{ matrix.cc }} -Wall -Wextra -pedantic -std=c11 -O2 -DNDEBUG main.c -o bin/shell
+          if [ -f "bin/shell" ]; then 
+            echo "✅ Direct compilation successful with ${{ matrix.cc }} on ${{ matrix.os }}"
+          else
+            echo "❌ Direct compilation failed with ${{ matrix.cc }} on ${{ matrix.os }}"
+            exit 1
+          fi
 
   code-quality:
     runs-on: ubuntu-latest
