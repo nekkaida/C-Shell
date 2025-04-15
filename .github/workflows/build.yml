@@ -19,13 +19,15 @@ jobs:
         run: |
           echo "Current directory contents:"
           ls -la
+          echo "Source directory contents:"
+          ls -la src || echo "src directory not found"
           echo "Source files:"
           find . -name "*.c" | sort
           
       - name: Compile directly
         run: |
           mkdir -p bin
-          gcc -Wall -Wextra -pedantic -std=c11 -O2 -DNDEBUG main.c -o bin/shell
+          gcc -Wall -Wextra -pedantic -std=c11 -O2 -DNDEBUG src/main.c -o bin/shell
           if [ -f "bin/shell" ]; then 
             echo "✅ Direct compilation successful"
           else
@@ -69,13 +71,13 @@ jobs:
         run: |
           echo "Current directory contents:"
           ls -la
-          echo "Source files:"
-          find . -name "*.c" | sort
+          echo "Source directory contents:"
+          ls -la src || echo "src directory not found"
           
       - name: Compile directly with ${{ matrix.cc }}
         run: |
           mkdir -p bin
-          ${{ matrix.cc }} -Wall -Wextra -pedantic -std=c11 -O2 -DNDEBUG main.c -o bin/shell
+          ${{ matrix.cc }} -Wall -Wextra -pedantic -std=c11 -O2 -DNDEBUG src/main.c -o bin/shell
           if [ -f "bin/shell" ]; then 
             echo "✅ Direct compilation successful with ${{ matrix.cc }} on ${{ matrix.os }}"
           else
@@ -94,14 +96,14 @@ jobs:
 
       - name: Static analysis with cppcheck
         run: |
-          if ls *.c 1> /dev/null 2>&1; then cppcheck --enable=warning,performance --suppress=missingIncludeSystem --error-exitcode=0 *.c && echo "ℹ️ Cppcheck analysis completed"; else echo "ℹ️ No .c files found to analyze"; fi
+          if find src -name "*.c" 1> /dev/null 2>&1; then cppcheck --enable=warning,performance --suppress=missingIncludeSystem --error-exitcode=0 src/*.c && echo "ℹ️ Cppcheck analysis completed"; else echo "ℹ️ No .c files found to analyze"; fi
         
       - name: Check coding standards
         run: |
-          if ls *.c *.h 2>/dev/null 1>&2; then
-            LONG_LINES=$(grep -n '.\{81\}' *.c *.h 2>/dev/null || echo "")
+          if find src -name "*.c" -o -name "*.h" 2>/dev/null 1>&2; then
+            LONG_LINES=$(grep -n '.\{81\}' src/*.c src/*.h 2>/dev/null || echo "")
             if [ -n "$LONG_LINES" ]; then echo "ℹ️ Found lines longer than 80 characters:" && echo "$LONG_LINES" | head -10 && echo "Consider reformatting these lines."; else echo "✅ No lines over 80 characters found."; fi
-            TABS=$(grep -P '\t' *.c *.h 2>/dev/null || echo "")
+            TABS=$(grep -P '\t' src/*.c src/*.h 2>/dev/null || echo "")
             if [ -n "$TABS" ]; then echo "ℹ️ Found tabs in source files. Consider using spaces instead."; else echo "✅ No tabs found in source files."; fi
           else
             echo "ℹ️ No .c or .h files found to check coding standards"
