@@ -18,7 +18,25 @@ jobs:
       - name: Create minimal Makefile if needed
         run: |
           if [ ! -f "Makefile" ]; then
-            printf "CC ?= gcc\nCFLAGS = -Wall -Wextra -std=c99\nDEBUG_FLAGS = -g -DDEBUG\n\nall: shell\n\nshell: main.c\n\t\$(CC) \$(CFLAGS) -o shell main.c\n\ndebug: CFLAGS += \$(DEBUG_FLAGS)\ndebug: shell\n\nclean:\n\trm -f shell\n" > Makefile
+            # First create the Makefile without tab indentation
+            cat > Makefile << 'EOF'
+            CC ?= gcc
+            CFLAGS = -Wall -Wextra -std=c99
+            DEBUG_FLAGS = -g -DDEBUG
+
+            all: shell
+
+            shell: main.c
+            <TAB>$(CC) $(CFLAGS) -o shell main.c
+
+            debug: CFLAGS += $(DEBUG_FLAGS)
+            debug: shell
+
+            clean:
+            <TAB>rm -f shell
+            EOF
+            # Replace <TAB> with actual tab character
+            sed -i 's/<TAB>/\t/g' Makefile
           fi
 
       - name: Build shell
@@ -62,7 +80,29 @@ jobs:
       - name: Create minimal Makefile if needed
         run: |
           if [ ! -f "Makefile" ]; then
-            printf "CC ?= gcc\nCFLAGS = -Wall -Wextra -std=c99\nDEBUG_FLAGS = -g -DDEBUG\n\nall: shell\n\nshell: main.c\n\t\$(CC) \$(CFLAGS) -o shell main.c\n\ndebug: CFLAGS += \$(DEBUG_FLAGS)\ndebug: shell\n\nclean:\n\trm -f shell\n" > Makefile
+            # First create the Makefile without tab indentation
+            cat > Makefile << 'EOF'
+            CC ?= gcc
+            CFLAGS = -Wall -Wextra -std=c99
+            DEBUG_FLAGS = -g -DDEBUG
+
+            all: shell
+
+            shell: main.c
+            <TAB>$(CC) $(CFLAGS) -o shell main.c
+
+            debug: CFLAGS += $(DEBUG_FLAGS)
+            debug: shell
+
+            clean:
+            <TAB>rm -f shell
+            EOF
+            # Replace <TAB> with actual tab character
+            if [ "${{ matrix.os }}" = "macos-latest" ]; then
+              sed -i '' 's/<TAB>/\t/g' Makefile
+            else
+              sed -i 's/<TAB>/\t/g' Makefile
+            fi
           fi
         
       - name: Build shell
@@ -87,7 +127,25 @@ jobs:
       - name: Create minimal Makefile if needed
         run: |
           if [ ! -f "Makefile" ]; then
-            printf "CC ?= gcc\nCFLAGS = -Wall -Wextra -std=c99\nDEBUG_FLAGS = -g -DDEBUG\n\nall: shell\n\nshell: main.c\n\t\$(CC) \$(CFLAGS) -o shell main.c\n\ndebug: CFLAGS += \$(DEBUG_FLAGS)\ndebug: shell\n\nclean:\n\trm -f shell\n" > Makefile
+            # First create the Makefile without tab indentation
+            cat > Makefile << 'EOF'
+            CC ?= gcc
+            CFLAGS = -Wall -Wextra -std=c99
+            DEBUG_FLAGS = -g -DDEBUG
+
+            all: shell
+
+            shell: main.c
+            <TAB>$(CC) $(CFLAGS) -o shell main.c
+
+            debug: CFLAGS += $(DEBUG_FLAGS)
+            debug: shell
+
+            clean:
+            <TAB>rm -f shell
+            EOF
+            # Replace <TAB> with actual tab character
+            sed -i 's/<TAB>/\t/g' Makefile
           fi
 
       - name: Build
