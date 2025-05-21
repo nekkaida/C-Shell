@@ -1,80 +1,88 @@
-# Compiler and flags
-CC := gcc
-CFLAGS := -Wall -Wextra -pedantic -std=c11
-LDFLAGS :=
+# C Shell Makefile
+# Can be used as an alternative to CMake
 
-# Build type flags
-DEBUG_FLAGS := -g -O0 -DDEBUG
-RELEASE_FLAGS := -O2 -DNDEBUG
+CC ?= gcc
+CFLAGS = -Wall -Wextra -pedantic -std=c11
+LDFLAGS = -lm
+DEBUGFLAGS = -g -O0 -DDEBUG
+RELEASEFLAGS = -O2 -DNDEBUG
 
 # Directories
-SRC_DIR := src
-BUILD_DIR := build
-BIN_DIR := bin
+SRC_DIR = src
+INC_DIR = include
+BIN_DIR = bin
+BUILD_DIR = build
+TEST_DIR = tests
 
-# Files
-TARGET := shell
-SRCS := $(wildcard $(SRC_DIR)/*.c)
-OBJS := $(SRCS:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
+# Source files
+SRCS = $(wildcard $(SRC_DIR)/*.c) \
+       $(wildcard $(SRC_DIR)/*/*.c)
 
-# Default build type
-BUILD_TYPE ?= release
+# Object files
+OBJS = $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRCS))
 
-# Set flags based on build type
-ifeq ($(BUILD_TYPE),debug)
-    CFLAGS += $(DEBUG_FLAGS)
-    BUILD_DIR := $(BUILD_DIR)/debug
-    BIN_DIR := $(BIN_DIR)/debug
-else
-    CFLAGS += $(RELEASE_FLAGS)
-    BUILD_DIR := $(BUILD_DIR)/release
-    BIN_DIR := $(BIN_DIR)/release
+# Make sure build directory structure exists
+BUILD_SUBDIRS = $(sort $(dir $(OBJS)))
+
+# Binary name
+TARGET = $(BIN_DIR)/shell
+
+# Platform-specific settings
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+	CFLAGS += -D_POSIX_C_SOURCE=200809L
 endif
-
-# Final target path
-TARGET_EXEC := $(BIN_DIR)/$(TARGET)
-
-# Phony targets
-.PHONY: all clean debug release dirs
 
 # Default target
 all: release
 
-# Debug build
-debug:
-	$(MAKE) BUILD_TYPE=debug dirs $(TARGET_EXEC)
-
 # Release build
-release:
-	$(MAKE) BUILD_TYPE=release dirs $(TARGET_EXEC)
+release: CFLAGS += $(RELEASEFLAGS)
+release: prepare $(TARGET)
+
+# Debug build
+debug: CFLAGS += $(DEBUGFLAGS)
+debug: prepare $(TARGET)
 
 # Create necessary directories
-dirs:
-	mkdir -p $(BUILD_DIR)
-	mkdir -p $(BIN_DIR)
+prepare:
+	@mkdir -p $(BIN_DIR) $(BUILD_SUBDIRS)
 
 # Link the executable
-$(TARGET_EXEC): $(OBJS)
-	$(CC) $(OBJS) -o $@ $(LDFLAGS)
+$(TARGET): $(OBJS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 # Compile source files
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -I$(INC_DIR) -c $< -o $@
+
+# Run the shell
+run: $(TARGET)
+	$(TARGET)
 
 # Clean build files
 clean:
-	rm -rf build bin
+	rm -rf $(BUILD_DIR) $(BIN_DIR)
 
-# Run the shell (convenience target)
-.PHONY: run
-run: release
-	$(TARGET_EXEC)
+# Clean and rebuild
+rebuild: clean all
 
-# Install the shell (optional)
-.PHONY: install
+# Run tests
+test: debug
+	cd $(TEST_DIR) && ./run_tests.sh
+
+# Install
 install: release
-	cp $(TARGET_EXEC) /usr/local/bin/$(TARGET)
+	install -d $(DESTDIR)/usr/local/bin
+	install -m 755 $(TARGET) $(DESTDIR)/usr/local/bin/
 
-# Generate dependencies
-DEPS := $(OBJS:.o=.d)
--include $(DEPS)
+# Uninstall
+uninstall:
+	rm -f $(DESTDIR)/usr/local/bin/shell
+
+# Static analysis
+check:
+	cppcheck --enable=warning,performance,portability --suppress=missingIncludeSystem $(SRC_DIR)
+
+.PHONY: all release debug prepare run clean rebuild test install uninstall check
