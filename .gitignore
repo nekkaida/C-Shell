@@ -1,11 +1,21 @@
 # Build directories
-build/
-bin/
+/bin/
+/build/
+/lib/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+Testing/
+Makefile
+*.cmake
 
 # Object files
 *.o
-*.obj
 *.ko
+*.obj
 *.elf
 
 # Precompiled Headers
@@ -18,7 +28,7 @@ bin/
 *.la
 *.lo
 
-# Shared objects
+# Shared objects (inc. Windows DLLs)
 *.dll
 *.so
 *.so.*
@@ -30,7 +40,7 @@ bin/
 *.app
 *.i*86
 *.x86_64
-shell
+*.hex
 
 # Debug files
 *.dSYM/
@@ -38,11 +48,10 @@ shell
 *.idb
 *.pdb
 
-# IDE specific files
+# Editor files
 .vscode/
 .idea/
 *.swp
-*.swo
 *~
 
 # OS generated files
@@ -53,12 +62,3 @@ shell
 .Trashes
 ehthumbs.db
 Thumbs.db
-
-# Dependency files
-*.d
-
-# Test output files
-*.log
-output.txt
-error.log
-test/
