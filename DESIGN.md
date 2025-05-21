@@ -2,6 +2,8 @@
 
 ## Architecture Overview
 
+The C Shell is designed with a modular architecture to ensure maintainability, testability, and extensibility. The shell follows Unix/POSIX design principles while implementing modern programming practices.
+
 ### Core Components
 
 1. **Command Processor**
@@ -21,6 +23,11 @@
    - Input buffering
    - Character-by-character processing
    - Signal handling
+
+4. **Tab Completion**
+   - Prefix detection and extraction
+   - Command and filename completion
+   - Multiple match handling
 
 ### Data Structures
 
@@ -81,6 +88,12 @@ typedef struct {
 - Direct access to shell state
 
 ## Design Decisions
+
+### Modularity and Code Organization
+- Clear separation of concerns
+- Each component focuses on a specific responsibility
+- Consistent interfaces between components
+- Reusable utility functions
 
 ### Memory Management
 1. **Dynamic Allocation**
@@ -160,3 +173,18 @@ typedef struct {
 - Large command throughput
 - Memory usage monitoring
 - Response time measurements
+
+## Security Considerations
+
+The shell implementation follows security best practices:
+- Input validation and sanitization
+- Memory safety measures
+- Proper privilege handling
+- Secure file operations
+
+## Compatibility
+
+The shell is designed to be compatible with:
+- POSIX standards
+- Common shell behaviors (bash, zsh)
+- Various UNIX-like systems
