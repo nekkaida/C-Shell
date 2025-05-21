@@ -1,0 +1,131 @@
+#!/bin/bash
+# Integration tests for C Shell
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Path to the shell executable (set by CMake)
+SHELL_PATH="@CMAKE_RUNTIME_OUTPUT_DIRECTORY@/shell"
+FIXTURE_DIR="@CMAKE_CURRENT_BINARY_DIR@/fixtures"
+TEST_OUTPUT="/tmp/shell_integration_test.out"
+TEST_ERROR="/tmp/shell_integration_test.err"
+
+# Ensure shell executable exists
+if [ ! -f "$SHELL_PATH" ]; then
+    echo -e "${RED}Error: Shell executable not found at $SHELL_PATH${NC}"
+    exit 1
+fi
+
+# Track test results
+PASSED=0
+FAILED=0
+TOTAL=0
+
+# Run a single test case
+run_test() {
+    local test_name="$1"
+    local test_command="$2"
+    local expected_output="$3"
+    local expected_status="$4"
+    
+    echo -n "Running test: $test_name... "
+    TOTAL=$((TOTAL + 1))
+    
+    # Run the command
+    eval "$test_command" > "$TEST_OUTPUT" 2> "$TEST_ERROR"
+    local status=$?
+    
+    # Check for expected status
+    if [ -n "$expected_status" ] && [ $status -ne $expected_status ]; then
+        echo -e "${RED}FAILED${NC}"
+        echo "Expected status: $expected_status, got: $status"
+        FAILED=$((FAILED + 1))
+        return
+    fi
+    
+    # Check for expected output
+    if [ -n "$expected_output" ]; then
+        if grep -q "$expected_output" "$TEST_OUTPUT"; then
+            echo -e "${GREEN}PASSED${NC}"
+            PASSED=$((PASSED + 1))
+        else
+            echo -e "${RED}FAILED${NC}"
+            echo "Expected to find: '$expected_output' in output:"
+            cat "$TEST_OUTPUT"
+            FAILED=$((FAILED + 1))
+        fi
+    else
+        echo -e "${GREEN}PASSED${NC}"
+        PASSED=$((PASSED + 1))
+    fi
+}
+
+# Test basic echo
+run_test "Basic echo" \
+    "echo 'echo test' | $SHELL_PATH" \
+    "test" \
+    0
+
+# Test pwd
+run_test "PWD command" \
+    "echo 'pwd' | $SHELL_PATH" \
+    "$(pwd)" \
+    0
+
+# Test cd
+run_test "CD command" \
+    "echo -e 'cd /tmp\\npwd' | $SHELL_PATH" \
+    "/tmp" \
+    0
+
+# Test redirection
+run_test "Redirection" \
+    "echo 'echo redirect_test > $TEST_OUTPUT.redirect' | $SHELL_PATH && cat $TEST_OUTPUT.redirect" \
+    "redirect_test" \
+    0
+
+# Test command not found
+run_test "Command not found" \
+    "echo 'command_that_does_not_exist' | $SHELL_PATH 2>&1" \
+    "command not found" \
+    0
+
+# Test type command
+run_test "Type command" \
+    "echo 'type echo' | $SHELL_PATH" \
+    "echo is a shell builtin" \
+    0
+
+# Test empty command
+run_test "Empty command" \
+    "echo '' | $SHELL_PATH" \
+    "" \
+    0
+
+# Test exit command
+run_test "Exit command" \
+    "echo 'exit 42' | $SHELL_PATH" \
+    "" \
+    42
+
+# Clean up
+rm -f "$TEST_OUTPUT" "$TEST_ERROR" "$TEST_OUTPUT.redirect"
+
+# Print summary
+echo -e "${BLUE}Integration Test Summary:${NC}"
+echo -e "${GREEN}Passed: $PASSED${NC}"
+echo -e "${RED}Failed: $FAILED${NC}"
+echo -e "${YELLOW}Total:  $TOTAL${NC}"
+
+# Return appropriate exit code
+if [ $FAILED -eq 0 ]; then
+    echo -e "${GREEN}All integration tests passed!${NC}"
+    exit 0
+else
+    echo -e "${RED}Some integration tests failed.${NC}"
+    exit 1
+fi
