@@ -29,8 +29,8 @@ This project adheres to a Code of Conduct that establishes a harassment-free exp
 ### Prerequisites
 
 - GCC or compatible C compiler
+- CMake (version 3.10 or higher)
 - POSIX-compliant operating system
-- Make build system
 - Git version control
 
 ### Setting Up Development Environment
@@ -49,6 +49,12 @@ This project adheres to a Code of Conduct that establishes a harassment-free exp
    ```bash
    git checkout -b feature/your-feature-name
    ```
+5. Build the project:
+   ```bash
+   mkdir build && cd build
+   cmake ..
+   make
+   ```
 
 ## Development Workflow
 
@@ -60,9 +66,8 @@ This project adheres to a Code of Conduct that establishes a harassment-free exp
 2. Make your changes following the [Coding Standards](#coding-standards)
 3. Build and test your changes:
    ```bash
-   make clean
-   make
-   # Run tests if available
+   cmake --build build
+   cd build && ctest
    ```
 4. Commit your changes following the [Commit Guidelines](#commit-guidelines)
 5. Push your branch to your fork:
@@ -82,6 +87,7 @@ This project adheres to a Code of Conduct that establishes a harassment-free exp
 - Constants and macros in UPPER_CASE
 - Struct names with CamelCase
 - Always include braces for control structures, even for single-line statements
+- Comments should be in C style (/* */) for multi-line and C++ style (//) for single-line
 
 ### Memory Management
 
