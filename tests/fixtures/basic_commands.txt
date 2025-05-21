@@ -1,0 +1,9 @@
+echo "Testing echo command"
+pwd
+echo "Testing quotes: 'single' and \"double\""
+echo "Testing escape sequences: \t \n"
+cd /tmp
+pwd
+type echo
+type ls
+exit 0
